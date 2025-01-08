@@ -74,34 +74,47 @@ def mostra_tabela(dataframe):
     )
     st.write(dataframe.head(qtd_linhas))
 
-def grafico_municipios(base_escolhida, filtro_valor):
+def grafico_municipios(base_escolhida, filtro_valor, filtro_tipo):
     """Gera o gráfico de municípios com maior quantidade de unidades habitacionais."""
+    
     if base_escolhida == 'União':
-        dataframe = dados_uniao[dados_uniao['txt_regiao'] == filtro_valor]
+        # Filtrar dados da União com base no filtro escolhido
+        if filtro_tipo == 'Estado':
+            dataframe = dados_uniao[dados_uniao['txt_sigla_uf'] == filtro_valor]
+        elif filtro_tipo == 'Região':
+            dataframe = dados_uniao[dados_uniao['txt_regiao'] == filtro_valor]
         coluna_uh = 'qtd_uh'
     elif base_escolhida == 'Financiado':
-        dataframe = dados_financiamento[dados_financiamento['txt_regiao'] == filtro_valor]
+        # Filtrar dados de Financiamento com base no filtro escolhido
+        dataframe = dados_financiamento[dados_financiamento['txt_sigla_uf'] == filtro_valor]
         coluna_uh = 'qtd_uh_financiadas'
     else:  # Ambas
-        dataframe_uniao = dados_uniao[dados_uniao['txt_regiao'] == filtro_valor]
-        dataframe_financiamento = dados_financiamento[dados_financiamento['txt_regiao'] == filtro_valor]
+        # Filtrar e agrupar dados de União e Financiado por município
+        dataframe_uniao = dados_uniao[dados_uniao['txt_sigla_uf'] == filtro_valor]
+        dataframe_financiamento = dados_financiamento[dados_financiamento['txt_sigla_uf'] == filtro_valor]
         dataframe_uniao = dataframe_uniao.groupby('txt_nome_municipio')['qtd_uh'].sum().reset_index()
         dataframe_financiamento = dataframe_financiamento.groupby('txt_nome_municipio')['qtd_uh_financiadas'].sum().reset_index()
+        
+        # Merge dos dois dataframes
         dataframe = pd.merge(
             dataframe_uniao, dataframe_financiamento,
-            left_on='txt_nome_municipio', right_on='txt_nome_municipio', how='outer'
+            on='txt_nome_municipio', how='outer'
         ).fillna(0)
+        
+        # Criar a coluna total
         dataframe['qtd_total'] = dataframe['qtd_uh'] + dataframe['qtd_uh_financiadas']
         coluna_uh = 'qtd_total'
 
     # Agrupar por município e somar a coluna relevante
     dataframe = dataframe.groupby('txt_nome_municipio')[coluna_uh].sum().reset_index()
-    dataframe = dataframe.sort_values(by=coluna_uh, ascending=False).head(100)
+    
+    # Ordenar e pegar os primeiros N municípios
+    dataframe = dataframe.sort_values(by=coluna_uh, ascending=False)
+    
 
-    # Filtrar número de municípios para o gráfico
-    num_municipios = st.slider('Selecione o número de municípios para o gráfico', min_value=10, max_value=50, step=10)
+    # Chamar a função para gerar o gráfico
     dataframe = dataframe.head(num_municipios)
-
+    
     # Plotar o gráfico
     plt.figure(figsize=(12, 6))
     sns.barplot(data=dataframe, x='txt_nome_municipio', y=coluna_uh, palette='RdBu')
@@ -251,9 +264,6 @@ def exibir_tabelas(base_escolhida):
         mime='text/csv'
     )
 
-
-
-
 def grafico_anos(base_escolhida):
     """Gera um gráfico de progressão por anos."""
     if base_escolhida == 'União':
@@ -300,6 +310,7 @@ if st.sidebar.checkbox('Mostrar tabela com filtros'):
 
 
 # Escolha do tipo de análise
+# Escolha do tipo de análise
 tipo_analise = st.sidebar.radio('Escolha o tipo de análise:', ['Municípios', 'Construtoras', 'Anos', 'Variados'])
 
 if tipo_analise == 'Municípios':
@@ -324,7 +335,12 @@ if tipo_analise == 'Municípios':
         filtro_valor = st.sidebar.selectbox(f'Selecione o {filtro_tipo.lower()} para o gráfico', options=opcoes)
 
         if filtro_valor:
-            grafico_municipios(base_escolhida, filtro_valor)
+            # Slider para selecionar o número de municípios
+            num_municipios = st.slider('Selecione o número de municípios para o gráfico', min_value=10, max_value=50, step=10)
+
+            # Chamar a função para gerar o gráfico
+            grafico_municipios(base_escolhida, filtro_valor, filtro_tipo)
+
 
 elif tipo_analise == 'Construtoras':
     # Filtro para construtoras
@@ -370,5 +386,8 @@ elif tipo_analise == 'Variados':
 
         # Gerar o gráfico de pizza para a base "União"
         gerar_grafico_pizza(dados_uniao, ano=ano, regiao=regiao, estado=estado)
+
+
+
 
 
