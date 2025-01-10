@@ -208,9 +208,11 @@ def exibir_tabelas(base_escolhida):
     if base_escolhida == 'União':
         dataframe = dados_uniao.copy()
         coluna_ano = 'ano_assinatura'  # Nome correto da coluna para anos
+        opcoes_filtro = ['Município', 'Estado', 'Região', 'Ano']
     elif base_escolhida == 'Financiado':
         dataframe = dados_financiamento.copy()
         coluna_ano = 'num_ano_financiamento'  # Nome correto da coluna para anos
+        opcoes_filtro = ['Município', 'Estado', 'Ano']  # Sem a opção "Região"
     else:
         st.warning("Opção inválida. Escolha entre União ou Financiado.")
         return
@@ -218,7 +220,7 @@ def exibir_tabelas(base_escolhida):
     # Filtros disponíveis
     filtro_opcoes = st.multiselect(
         'Escolha os filtros que deseja aplicar:',
-        ['Município', 'Estado', 'Região', 'Ano']
+        opcoes_filtro
     )
 
     if 'Município' in filtro_opcoes:
